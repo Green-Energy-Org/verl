@@ -23,7 +23,7 @@ jobs:
   # ============================================================
   build-push-digest:
     name: build-${{ matrix.tag }}
-    if: ${{ github.event_name != 'pull_request' && github.repository_owner == 'verl-project' }}
+    #if: ${{ github.event_name != 'pull_request' && github.repository_owner == 'verl-project' }}
     concurrency:
       group: ${{ github.workflow }}-${{ github.ref }}-${{ matrix.tag }}
       cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
@@ -36,7 +36,7 @@ jobs:
       matrix:
         include:
           - arch: linux/amd64
-            runner: ubuntu-latest
+            runner: self-hosted
             tag: amd64
           - arch: linux/arm64
             runner: ubuntu-22.04-arm
@@ -131,7 +131,7 @@ jobs:
   # ============================================================
   build-push-digest-v071:
     name: build-v0.7.1-${{ matrix.tag }}
-    if: ${{ github.event_name != 'pull_request' && github.repository_owner == 'verl-project' }}
+    #if: ${{ github.event_name != 'pull_request' && github.repository_owner == 'verl-project' }}
     concurrency:
       group: ${{ github.workflow }}-${{ github.ref }}-v0.7.1-${{ matrix.tag }}
       cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
@@ -144,7 +144,7 @@ jobs:
       matrix:
         include:
           - arch: linux/amd64
-            runner: ubuntu-latest
+            runner: self-hosted
             tag: amd64
           - arch: linux/arm64
             runner: ubuntu-22.04-arm
@@ -215,7 +215,7 @@ jobs:
   # ============================================================
   merge-image:
     name: merge
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     needs: build-push-digest
     steps:
       - name: Download digests (main image)
@@ -250,7 +250,7 @@ jobs:
   # ============================================================
   merge-image-v071:
     name: merge-v0.7.1
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     needs: build-push-digest-v071
     steps:
       - name: Download digests (v0.7.1 image)
