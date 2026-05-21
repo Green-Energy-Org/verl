@@ -63,7 +63,7 @@ env:
 jobs:
   setup:
     if: github.repository_owner == 'verl-project'
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     outputs:
       runner-label: ${{ steps.create-runner.outputs.runner-label }}
       mlp-task-id: ${{ steps.create-runner.outputs.mlp-task-id }}
@@ -105,7 +105,7 @@ jobs:
           echo 'python_files = *_on_cpu.py' >> pytest.ini
           pytest -s -x --asyncio-mode=auto tests/
   cleanup:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     needs: [setup, cpu_unit_tests]
     if: always()
     steps:
