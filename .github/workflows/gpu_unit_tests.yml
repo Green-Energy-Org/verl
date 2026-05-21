@@ -77,7 +77,7 @@ env:
 jobs:
   setup:
     if: github.repository_owner == 'verl-project'
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     outputs:
       runner-label: ${{ steps.create-runner.outputs.runner-label }}
       mlp-task-id: ${{ steps.create-runner.outputs.mlp-task-id }}
@@ -122,7 +122,7 @@ jobs:
           torchrun --standalone --nnodes=1 --nproc-per-node=2 tests/utils/test_special_megatron_kl_loss_tp.py
 
   cleanup:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     needs: [setup, gpu_unit_tests]
     if: always()
     steps:
