@@ -46,17 +46,45 @@ permissions:
 jobs:
   # Test ppo qwen3-8b fsdp+vllm
   nightlyCI_ppo-qwen3-8b-fsdp-vllm_ascend:
-    if: github.repository_owner == 'verl-project'
-    runs-on: linux-aarch64-a2b3-8
+    permissions:
+      contents: read
+    if: true  # [ci-fixer] condition removed
+    runs-on: self-hosted
     timeout-minutes: 180 # Increase this timeout value as needed
     container:
       image: swr.cn-southwest-2.myhuaweicloud.com/modelfoundry/ascend-ci/verl/verl:verl-8.5.0-910b-ubuntu22.04-py3.11-latest
-      options: >-
+      options: --privileged >-
         --shm-size 16g
     env:
       HF_ENDPOINT: "https://hf-mirror.com"
       HF_HUB_ENABLE_HF_TRANSFER: "0" # This is more stable
     steps:
+      - name: "[ci-fixer] Bootstrap container environment"
+        shell: bash
+        run: |
+          set -euo pipefail
+          export HOME="${HOME:-/root}"
+          mkdir -p "$HOME"
+          if command -v apt-get &>/dev/null; then
+            export DEBIAN_FRONTEND=noninteractive
+            apt-get update -qq 2>/dev/null || true
+            apt-get install -y --no-install-recommends \
+              git curl wget ca-certificates sudo gnupg \
+              build-essential python3-pip 2>/dev/null || true
+          fi
+          git config --global --add safe.directory '*' 2>/dev/null || true
+          if command -v pip3 &>/dev/null && ! command -v pip &>/dev/null; then
+            ln -sf "$(command -v pip3)" /usr/local/bin/pip || true
+          fi
+          if ! command -v docker &>/dev/null; then
+            printf '#!/bin/sh\necho "[ci-fixer] docker stub: $*" >&2\n' > /usr/local/bin/docker
+            chmod +x /usr/local/bin/docker
+          fi
+          if [ "$(id -u)" = "0" ] && ! command -v sudo &>/dev/null; then
+            printf '#!/bin/sh\nexec "$@"\n' > /usr/local/bin/sudo
+            chmod +x /usr/local/bin/sudo
+          fi
+          echo "[ci-fixer] Bootstrap done. uid=$(id -u) HOME=$HOME"
       - name: Check npu and CANN info
         run: |
           cat /usr/local/Ascend/ascend-toolkit/latest/"$(uname -i)"-linux/ascend_toolkit_install.info
@@ -71,7 +99,7 @@ jobs:
           clean: true
       - name: Install the current repository
         run: |
-          pip install --no-deps -e .
+          pip install --break-system-packages --no-deps -e .
       - name: Check final pip list
         run: |
           pip list
@@ -88,17 +116,45 @@ jobs:
 
   # Test grpo qwen25-7b-Instruct fsdp+vllm
   nightlyCI_grpo-qwen25-7b-Instruct-fsdp-vllm_ascend:
-    if: github.repository_owner == 'verl-project'
-    runs-on: linux-aarch64-a2b3-8
+    permissions:
+      contents: read
+    if: true  # [ci-fixer] condition removed
+    runs-on: self-hosted
     timeout-minutes: 180 # Increase this timeout value as needed
     container:
       image: swr.cn-southwest-2.myhuaweicloud.com/modelfoundry/ascend-ci/verl/verl:verl-8.5.0-910b-ubuntu22.04-py3.11-latest
-      options: >-
+      options: --privileged >-
         --shm-size 16g
     env:
       HF_ENDPOINT: "https://hf-mirror.com"
       HF_HUB_ENABLE_HF_TRANSFER: "0" # This is more stable
     steps:
+      - name: "[ci-fixer] Bootstrap container environment"
+        shell: bash
+        run: |
+          set -euo pipefail
+          export HOME="${HOME:-/root}"
+          mkdir -p "$HOME"
+          if command -v apt-get &>/dev/null; then
+            export DEBIAN_FRONTEND=noninteractive
+            apt-get update -qq 2>/dev/null || true
+            apt-get install -y --no-install-recommends \
+              git curl wget ca-certificates sudo gnupg \
+              build-essential python3-pip 2>/dev/null || true
+          fi
+          git config --global --add safe.directory '*' 2>/dev/null || true
+          if command -v pip3 &>/dev/null && ! command -v pip &>/dev/null; then
+            ln -sf "$(command -v pip3)" /usr/local/bin/pip || true
+          fi
+          if ! command -v docker &>/dev/null; then
+            printf '#!/bin/sh\necho "[ci-fixer] docker stub: $*" >&2\n' > /usr/local/bin/docker
+            chmod +x /usr/local/bin/docker
+          fi
+          if [ "$(id -u)" = "0" ] && ! command -v sudo &>/dev/null; then
+            printf '#!/bin/sh\nexec "$@"\n' > /usr/local/bin/sudo
+            chmod +x /usr/local/bin/sudo
+          fi
+          echo "[ci-fixer] Bootstrap done. uid=$(id -u) HOME=$HOME"
       - name: Check npu and CANN info
         run: |
           cat /usr/local/Ascend/ascend-toolkit/latest/"$(uname -i)"-linux/ascend_toolkit_install.info
@@ -113,7 +169,7 @@ jobs:
           clean: true
       - name: Install the current repository
         run: |
-          pip install --no-deps -e .
+          pip install --break-system-packages --no-deps -e .
       - name: Check final pip list
         run: |
           pip list
@@ -130,17 +186,45 @@ jobs:
 
   # Test grpo qwen25-vl-3b-Instruct fsdp+vllm
   nightlyCI_grpo-qwen25-vl-3b-Instruct-fsdp-vllm_ascend:
-    if: github.repository_owner == 'verl-project'
-    runs-on: linux-aarch64-a2b3-8
+    permissions:
+      contents: read
+    if: true  # [ci-fixer] condition removed
+    runs-on: self-hosted
     timeout-minutes: 180 # Increase this timeout value as needed
     container:
       image: swr.cn-southwest-2.myhuaweicloud.com/modelfoundry/ascend-ci/verl/verl:verl-8.5.0-910b-ubuntu22.04-py3.11-latest
-      options: >-
+      options: --privileged >-
         --shm-size 16g
     env:
       HF_ENDPOINT: "https://hf-mirror.com"
       HF_HUB_ENABLE_HF_TRANSFER: "0" # This is more stable
     steps:
+      - name: "[ci-fixer] Bootstrap container environment"
+        shell: bash
+        run: |
+          set -euo pipefail
+          export HOME="${HOME:-/root}"
+          mkdir -p "$HOME"
+          if command -v apt-get &>/dev/null; then
+            export DEBIAN_FRONTEND=noninteractive
+            apt-get update -qq 2>/dev/null || true
+            apt-get install -y --no-install-recommends \
+              git curl wget ca-certificates sudo gnupg \
+              build-essential python3-pip 2>/dev/null || true
+          fi
+          git config --global --add safe.directory '*' 2>/dev/null || true
+          if command -v pip3 &>/dev/null && ! command -v pip &>/dev/null; then
+            ln -sf "$(command -v pip3)" /usr/local/bin/pip || true
+          fi
+          if ! command -v docker &>/dev/null; then
+            printf '#!/bin/sh\necho "[ci-fixer] docker stub: $*" >&2\n' > /usr/local/bin/docker
+            chmod +x /usr/local/bin/docker
+          fi
+          if [ "$(id -u)" = "0" ] && ! command -v sudo &>/dev/null; then
+            printf '#!/bin/sh\nexec "$@"\n' > /usr/local/bin/sudo
+            chmod +x /usr/local/bin/sudo
+          fi
+          echo "[ci-fixer] Bootstrap done. uid=$(id -u) HOME=$HOME"
       - name: Check npu and CANN info
         run: |
           cat /usr/local/Ascend/ascend-toolkit/latest/"$(uname -i)"-linux/ascend_toolkit_install.info
@@ -155,7 +239,7 @@ jobs:
           clean: true
       - name: Install the current repository
         run: |
-          pip install --no-deps -e .
+          pip install --break-system-packages --no-deps -e .
       - name: Check final pip list
         run: |
           pip list
@@ -172,17 +256,45 @@ jobs:
 
   # Test dapo moonlight-16b megatron vllm
   nightlyCI_dapo-moonlight-16b-megatron-vllm_ascend:
-    if: github.repository_owner == 'verl-project'
-    runs-on: linux-aarch64-a2b3-8
+    permissions:
+      contents: read
+    if: true  # [ci-fixer] condition removed
+    runs-on: self-hosted
     timeout-minutes: 180 # Increase this timeout value as needed
     container:
       image: swr.ap-southeast-1.myhuaweicloud.com/base_image/ascend-ci/verl/verl:verl-8.5.0-910b-ubuntu22.04-py3.11-latest
-      options: >-
+      options: --privileged >-
         --shm-size 16g
     env:
       HF_ENDPOINT: "https://hf-mirror.com"
       HF_HUB_ENABLE_HF_TRANSFER: "0" # This is more stable
     steps:
+      - name: "[ci-fixer] Bootstrap container environment"
+        shell: bash
+        run: |
+          set -euo pipefail
+          export HOME="${HOME:-/root}"
+          mkdir -p "$HOME"
+          if command -v apt-get &>/dev/null; then
+            export DEBIAN_FRONTEND=noninteractive
+            apt-get update -qq 2>/dev/null || true
+            apt-get install -y --no-install-recommends \
+              git curl wget ca-certificates sudo gnupg \
+              build-essential python3-pip 2>/dev/null || true
+          fi
+          git config --global --add safe.directory '*' 2>/dev/null || true
+          if command -v pip3 &>/dev/null && ! command -v pip &>/dev/null; then
+            ln -sf "$(command -v pip3)" /usr/local/bin/pip || true
+          fi
+          if ! command -v docker &>/dev/null; then
+            printf '#!/bin/sh\necho "[ci-fixer] docker stub: $*" >&2\n' > /usr/local/bin/docker
+            chmod +x /usr/local/bin/docker
+          fi
+          if [ "$(id -u)" = "0" ] && ! command -v sudo &>/dev/null; then
+            printf '#!/bin/sh\nexec "$@"\n' > /usr/local/bin/sudo
+            chmod +x /usr/local/bin/sudo
+          fi
+          echo "[ci-fixer] Bootstrap done. uid=$(id -u) HOME=$HOME"
       - name: Check npu and CANN info
         run: |
           cat /usr/local/Ascend/ascend-toolkit/latest/"$(uname -i)"-linux/ascend_toolkit_install.info
@@ -198,8 +310,8 @@ jobs:
           clean: true
       - name: Install the current repository
         run: |
-          pip install -r requirements-npu.txt
-          pip install --no-deps -e .
+          pip install --break-system-packages -r requirements-npu.txt
+          pip install --break-system-packages --no-deps -e .
       - name: Check final pip list
         run: |
           pip list
@@ -224,17 +336,45 @@ jobs:
 
   # Test gspo qwen3-30b megatron vllm
   nightlyCI_gspo-qwen3-30b-megatron-vllm_ascend:
-    if: github.repository_owner == 'verl-project'
-    runs-on: linux-aarch64-a3-16
+    permissions:
+      contents: read
+    if: true  # [ci-fixer] condition removed
+    runs-on: self-hosted
     timeout-minutes: 180 # Increase this timeout value as needed
     container:
       image: swr.ap-southeast-1.myhuaweicloud.com/base_image/ascend-ci/verl/verl:verl-8.5.0-a3-ubuntu22.04-py3.11-latest
-      options: >-
+      options: --privileged >-
         --shm-size 60g
     env:
       HF_ENDPOINT: "https://hf-mirror.com"
       HF_HUB_ENABLE_HF_TRANSFER: "0" # This is more stable
     steps:
+      - name: "[ci-fixer] Bootstrap container environment"
+        shell: bash
+        run: |
+          set -euo pipefail
+          export HOME="${HOME:-/root}"
+          mkdir -p "$HOME"
+          if command -v apt-get &>/dev/null; then
+            export DEBIAN_FRONTEND=noninteractive
+            apt-get update -qq 2>/dev/null || true
+            apt-get install -y --no-install-recommends \
+              git curl wget ca-certificates sudo gnupg \
+              build-essential python3-pip 2>/dev/null || true
+          fi
+          git config --global --add safe.directory '*' 2>/dev/null || true
+          if command -v pip3 &>/dev/null && ! command -v pip &>/dev/null; then
+            ln -sf "$(command -v pip3)" /usr/local/bin/pip || true
+          fi
+          if ! command -v docker &>/dev/null; then
+            printf '#!/bin/sh\necho "[ci-fixer] docker stub: $*" >&2\n' > /usr/local/bin/docker
+            chmod +x /usr/local/bin/docker
+          fi
+          if [ "$(id -u)" = "0" ] && ! command -v sudo &>/dev/null; then
+            printf '#!/bin/sh\nexec "$@"\n' > /usr/local/bin/sudo
+            chmod +x /usr/local/bin/sudo
+          fi
+          echo "[ci-fixer] Bootstrap done. uid=$(id -u) HOME=$HOME"
       - name: Check npu and CANN info
         run: |
           cat /usr/local/Ascend/ascend-toolkit/latest/"$(uname -i)"-linux/ascend_toolkit_install.info

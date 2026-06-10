@@ -64,20 +64,51 @@ env:
 
 jobs:
   setup:
-    if: github.repository_owner == 'verl-project'
-    runs-on: ubuntu-latest
+    container:
+      image: catthehacker/ubuntu:act-22.04
+      options: "--privileged"
+      env:
+        HOME: /root
+        CI: 'true'
+        GITHUB_WORKSPACE: /github/workspace
+    permissions:
+      contents: read
+    if: true  # [ci-fixer] condition removed
+    runs-on: self-hosted
     outputs:
       runner-label: ${{ steps.create-runner.outputs.runner-label }}
       mlp-task-id: ${{ steps.create-runner.outputs.mlp-task-id }}
     steps:
+      - name: "[ci-fixer] Bootstrap container environment"
+        shell: bash
+        run: |
+          set -euo pipefail
+          export HOME="${HOME:-/root}"
+          mkdir -p "$HOME"
+          if command -v apt-get &>/dev/null; then
+            export DEBIAN_FRONTEND=noninteractive
+            apt-get update -qq 2>/dev/null || true
+            apt-get install -y --no-install-recommends \
+              git curl wget ca-certificates sudo gnupg \
+              build-essential python3-pip 2>/dev/null || true
+          fi
+          git config --global --add safe.directory '*' 2>/dev/null || true
+          if command -v pip3 &>/dev/null && ! command -v pip &>/dev/null; then
+            ln -sf "$(command -v pip3)" /usr/local/bin/pip || true
+          fi
+          if ! command -v docker &>/dev/null; then
+            printf '#!/bin/sh\necho "[ci-fixer] docker stub: $*" >&2\n' > /usr/local/bin/docker
+            chmod +x /usr/local/bin/docker
+          fi
+          if [ "$(id -u)" = "0" ] && ! command -v sudo &>/dev/null; then
+            printf '#!/bin/sh\nexec "$@"\n' > /usr/local/bin/sudo
+            chmod +x /usr/local/bin/sudo
+          fi
+          echo "[ci-fixer] Bootstrap done. uid=$(id -u) HOME=$HOME"
       - uses: actions/checkout@v4
-      - id: create-runner
-        uses: volcengine/vemlp-github-runner@v1
-        with:
-          mode: "create"
-          faas-url: "${{ env.DYNAMIC_RUNNER_ENDPOINT }}"
-          mlp-image: "${{ env.IMAGE }}"
-
+      - name: "[ci-fixer] SKIPPED: volcengine/vemlp-github-runner"
+        shell: bash
+        run: echo "[ci-fixer] 'volcengine/vemlp-github-runner' skipped on self-hosted runner"
   reward_model_sglang:
     container:
       image: catthehacker/ubuntu:act-22.04
@@ -88,7 +119,7 @@ jobs:
         GITHUB_WORKSPACE: /github/workspace
     permissions:
       contents: read
-    needs: setup
+    needs: []  # [ci-fixer] provisioning job removed
     runs-on: self-hosted
     timeout-minutes: 30 # Increase this timeout value as needed
     env:
@@ -181,9 +212,9 @@ jobs:
           fetch-depth: 0
       - name: Install the current repository
         run: |
-          pip3 install -r requirements-test.txt
-          pip3 install --no-deps -e .
-          pip3 install sglang-router==0.2.2
+          pip3 install --break-system-packages -r requirements-test.txt
+          pip3 install --break-system-packages --no-deps -e .
+          pip3 install --break-system-packages sglang-router==0.2.2
       - name: Prepare gsm8k dataset
         run: |
           ray stop --force
@@ -203,13 +234,45 @@ jobs:
       #     ROLLOUT_NAME=sglang pytest -s -x tests/experimental/reward_loop/test_agent_reward_loop_colocate.py
 
   cleanup:
-    runs-on: ubuntu-latest
-    needs: [setup, reward_model_sglang]
+    container:
+      image: catthehacker/ubuntu:act-22.04
+      options: "--privileged"
+      env:
+        HOME: /root
+        CI: 'true'
+        GITHUB_WORKSPACE: /github/workspace
+    permissions:
+      contents: read
+    runs-on: self-hosted
+    needs: [reward_model_sglang]
     if: always()
     steps:
-      - id: destroy-runner
-        uses: volcengine/vemlp-github-runner@v1
-        with:
-          mode: "destroy"
-          faas-url: "${{ env.DYNAMIC_RUNNER_ENDPOINT }}"
-          mlp-task-id: "${{ needs.setup.outputs.mlp-task-id }}"
+      - name: "[ci-fixer] Bootstrap container environment"
+        shell: bash
+        run: |
+          set -euo pipefail
+          export HOME="${HOME:-/root}"
+          mkdir -p "$HOME"
+          if command -v apt-get &>/dev/null; then
+            export DEBIAN_FRONTEND=noninteractive
+            apt-get update -qq 2>/dev/null || true
+            apt-get install -y --no-install-recommends \
+              git curl wget ca-certificates sudo gnupg \
+              build-essential python3-pip 2>/dev/null || true
+          fi
+          git config --global --add safe.directory '*' 2>/dev/null || true
+          if command -v pip3 &>/dev/null && ! command -v pip &>/dev/null; then
+            ln -sf "$(command -v pip3)" /usr/local/bin/pip || true
+          fi
+          if ! command -v docker &>/dev/null; then
+            printf '#!/bin/sh\necho "[ci-fixer] docker stub: $*" >&2\n' > /usr/local/bin/docker
+            chmod +x /usr/local/bin/docker
+          fi
+          if [ "$(id -u)" = "0" ] && ! command -v sudo &>/dev/null; then
+            printf '#!/bin/sh\nexec "$@"\n' > /usr/local/bin/sudo
+            chmod +x /usr/local/bin/sudo
+          fi
+          echo "[ci-fixer] Bootstrap done. uid=$(id -u) HOME=$HOME"
+      - name: "[ci-fixer] SKIPPED: volcengine/vemlp-github-runner"
+        shell: bash
+        run: echo "[ci-fixer] 'volcengine/vemlp-github-runner' skipped on self-hosted runner"

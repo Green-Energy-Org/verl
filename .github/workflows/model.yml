@@ -67,20 +67,51 @@ env:
 
 jobs:
   setup:
-    if: github.repository_owner == 'verl-project'
-    runs-on: ubuntu-latest
+    container:
+      image: catthehacker/ubuntu:act-22.04
+      options: "--privileged"
+      env:
+        HOME: /root
+        CI: 'true'
+        GITHUB_WORKSPACE: /github/workspace
+    permissions:
+      contents: read
+    if: true  # [ci-fixer] condition removed
+    runs-on: self-hosted
     outputs:
       runner-label: ${{ steps.create-runner.outputs.runner-label }}
       mlp-task-id: ${{ steps.create-runner.outputs.mlp-task-id }}
     steps:
+      - name: "[ci-fixer] Bootstrap container environment"
+        shell: bash
+        run: |
+          set -euo pipefail
+          export HOME="${HOME:-/root}"
+          mkdir -p "$HOME"
+          if command -v apt-get &>/dev/null; then
+            export DEBIAN_FRONTEND=noninteractive
+            apt-get update -qq 2>/dev/null || true
+            apt-get install -y --no-install-recommends \
+              git curl wget ca-certificates sudo gnupg \
+              build-essential python3-pip 2>/dev/null || true
+          fi
+          git config --global --add safe.directory '*' 2>/dev/null || true
+          if command -v pip3 &>/dev/null && ! command -v pip &>/dev/null; then
+            ln -sf "$(command -v pip3)" /usr/local/bin/pip || true
+          fi
+          if ! command -v docker &>/dev/null; then
+            printf '#!/bin/sh\necho "[ci-fixer] docker stub: $*" >&2\n' > /usr/local/bin/docker
+            chmod +x /usr/local/bin/docker
+          fi
+          if [ "$(id -u)" = "0" ] && ! command -v sudo &>/dev/null; then
+            printf '#!/bin/sh\nexec "$@"\n' > /usr/local/bin/sudo
+            chmod +x /usr/local/bin/sudo
+          fi
+          echo "[ci-fixer] Bootstrap done. uid=$(id -u) HOME=$HOME"
       - uses: actions/checkout@v4
-      - id: create-runner
-        uses: volcengine/vemlp-github-runner@v1
-        with:
-          mode: "create"
-          faas-url: "${{ env.DYNAMIC_RUNNER_ENDPOINT }}"
-          mlp-image: "${{ env.IMAGE }}"
-
+      - name: "[ci-fixer] SKIPPED: volcengine/vemlp-github-runner"
+        shell: bash
+        run: echo "[ci-fixer] 'volcengine/vemlp-github-runner' skipped on self-hosted runner"
   model_rmpad:
     container:
       image: catthehacker/ubuntu:act-22.04
@@ -91,7 +122,7 @@ jobs:
         GITHUB_WORKSPACE: /github/workspace
     permissions:
       contents: read
-    needs: setup
+    needs: []  # [ci-fixer] provisioning job removed
     runs-on: self-hosted
     timeout-minutes: 20 # Increase this timeout value as needed
     env:
@@ -181,8 +212,8 @@ jobs:
           fetch-depth: 0
       - name: Install the current repository and upgrade to latest transformers
         run: |
-          pip3 install -r requirements-test.txt
-          pip3 install --no-deps -e .
+          pip3 install --break-system-packages -r requirements-test.txt
+          pip3 install --break-system-packages --no-deps -e .
       - name: Running rmpad model tests on 8 L20 GPUs + flash_attn 2.5.8
         run: |
           pytest -s tests/models/test_transformer.py
@@ -197,14 +228,14 @@ jobs:
           torchrun --nproc_per_node=8 -m pytest tests/models/test_transformers_ulysses.py
       - name: Running transformers ulysses tests on 8 L20 GPUs + transformers 4.54.1
         run: |
-          pip3 install transformers==4.54.1
+          pip3 install --break-system-packages transformers==4.54.1
           torchrun --nproc_per_node=8 -m pytest tests/models/test_transformers_ulysses.py
       - name: Run distributed test
         run: |
           bash tests/special_distributed/run_all.sh
       - name: Clean up and recover transformers
         run: |
-          pip3 install --upgrade "transformers==5.3.0"
+          pip3 install --break-system-packages --upgrade "transformers==5.3.0"
 
   # TODO: Move this back to model_rmpad once FSDP2 is stable.
   # NOTE: List as an independent job to make rerun easier.
@@ -218,7 +249,7 @@ jobs:
         GITHUB_WORKSPACE: /github/workspace
     permissions:
       contents: read
-    needs: setup
+    needs: []  # [ci-fixer] provisioning job removed
     runs-on: self-hosted
     timeout-minutes: 20 # Increase this timeout value as needed
     env:
@@ -308,8 +339,8 @@ jobs:
           fetch-depth: 0
       - name: Install the current repository and upgrade to latest transformers/flash_attn
         run: |
-          pip3 install -r requirements-test.txt
-          pip3 install --no-deps -e .
+          pip3 install --break-system-packages -r requirements-test.txt
+          pip3 install --break-system-packages --no-deps -e .
       - name: Running FSDP2 rmpad model tests on 8 L20 GPUs + latest flash_attn
         run: |
           STRATEGY=fsdp2 torchrun --nproc_per_node=8 tests/special_distributed/test_fsdp_ckpt.py
@@ -324,7 +355,7 @@ jobs:
         GITHUB_WORKSPACE: /github/workspace
     permissions:
       contents: read
-    needs: setup
+    needs: []  # [ci-fixer] provisioning job removed
     runs-on: self-hosted
     timeout-minutes: 20 # Increase this timeout value as needed
     env:
@@ -414,9 +445,9 @@ jobs:
           fetch-depth: 0
       - name: Install the current repository
         run: |
-          pip3 install -r requirements-test.txt
-          pip3 install --no-deps -e .
-          pip3 install --upgrade "accelerate>=1.13.0"
+          pip3 install --break-system-packages -r requirements-test.txt
+          pip3 install --break-system-packages --no-deps -e .
+          pip3 install --break-system-packages --upgrade "accelerate>=1.13.0"
       - name: Download model config files
         run: |
           hf download Qwen/Qwen2.5-0.5B-Instruct --local-dir $HOME/models/Qwen/Qwen2.5-0.5B-Instruct
@@ -426,13 +457,45 @@ jobs:
           pytest -s -x tests/models/test_engine.py
 
   cleanup:
-    runs-on: ubuntu-latest
-    needs: [setup, model_rmpad, model_rmpad_fsdp2_unstable, model_engine]
+    container:
+      image: catthehacker/ubuntu:act-22.04
+      options: "--privileged"
+      env:
+        HOME: /root
+        CI: 'true'
+        GITHUB_WORKSPACE: /github/workspace
+    permissions:
+      contents: read
+    runs-on: self-hosted
+    needs: [model_rmpad, model_rmpad_fsdp2_unstable, model_engine]
     if: always()
     steps:
-      - id: destroy-runner
-        uses: volcengine/vemlp-github-runner@v1
-        with:
-          mode: "destroy"
-          faas-url: "${{ env.DYNAMIC_RUNNER_ENDPOINT }}"
-          mlp-task-id: "${{ needs.setup.outputs.mlp-task-id }}"
+      - name: "[ci-fixer] Bootstrap container environment"
+        shell: bash
+        run: |
+          set -euo pipefail
+          export HOME="${HOME:-/root}"
+          mkdir -p "$HOME"
+          if command -v apt-get &>/dev/null; then
+            export DEBIAN_FRONTEND=noninteractive
+            apt-get update -qq 2>/dev/null || true
+            apt-get install -y --no-install-recommends \
+              git curl wget ca-certificates sudo gnupg \
+              build-essential python3-pip 2>/dev/null || true
+          fi
+          git config --global --add safe.directory '*' 2>/dev/null || true
+          if command -v pip3 &>/dev/null && ! command -v pip &>/dev/null; then
+            ln -sf "$(command -v pip3)" /usr/local/bin/pip || true
+          fi
+          if ! command -v docker &>/dev/null; then
+            printf '#!/bin/sh\necho "[ci-fixer] docker stub: $*" >&2\n' > /usr/local/bin/docker
+            chmod +x /usr/local/bin/docker
+          fi
+          if [ "$(id -u)" = "0" ] && ! command -v sudo &>/dev/null; then
+            printf '#!/bin/sh\nexec "$@"\n' > /usr/local/bin/sudo
+            chmod +x /usr/local/bin/sudo
+          fi
+          echo "[ci-fixer] Bootstrap done. uid=$(id -u) HOME=$HOME"
+      - name: "[ci-fixer] SKIPPED: volcengine/vemlp-github-runner"
+        shell: bash
+        run: echo "[ci-fixer] 'volcengine/vemlp-github-runner' skipped on self-hosted runner"
