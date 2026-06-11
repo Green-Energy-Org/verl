@@ -209,8 +209,8 @@ jobs:
           fetch-depth: 0
       - name: Install the current repository
         run: |
-          pip3 install --break-system-packages -r requirements-test.txt
-          pip3 install --break-system-packages --no-deps -e .
+          pip3 install  -r requirements-test.txt
+          pip3 install  --no-deps -e .
       - name: Download datasets
         run: |
           python3 examples/data_preprocess/gsm8k.py --local_dataset_path ${HOME}/models/hf_data/gsm8k
